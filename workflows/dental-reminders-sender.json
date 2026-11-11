@@ -1,0 +1,211 @@
+{
+  "name": "dental-reminders-sender",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Claim Due Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Due Messages": {
+      "main": [
+        [
+          {
+            "node": "Send Templated Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Templated Message": {
+      "main": [
+        [
+          {
+            "node": "Mark Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "1722267f-fde5-4283-a235-44e4edfe152c",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d3c404e7-1015-4819-9bad-a52d79a27dd1",
+      "name": "Claim Due Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/rpc/agent_claim_outbound",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_PUBLISHABLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{ \"p_limit\": 20 }",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "fb774dd6-12dd-4395-b2a0-b12e5c47f135",
+      "name": "Send Templated Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "<__PLACEHOLDER_VALUE__The clinic WhatsApp Business phone number ID__>",
+        "recipientPhoneNumber": "={{ $json.to_phone }}",
+        "messageType": "text",
+        "textBody": "={{ $json.body }}"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "c79f3dda-fd13-4c75-baca-6d4e695d85fe",
+      "name": "Mark Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/rpc/agent_mark_outbound",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_PUBLISHABLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_id: $(\"Claim Due Messages\").item.json.id, p_claim_token: $(\"Claim Due Messages\").item.json.claim_token, p_ok: false, p_error: String($json.error?.message || $json.error || \"WhatsApp send failed\").slice(0, 500) }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "c3c2eaba-b27e-4f96-95c4-3b23ae89bf8b",
+      "name": "Mark Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/rpc/agent_mark_outbound",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_PUBLISHABLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_id: $(\"Claim Due Messages\").item.json.id, p_claim_token: $(\"Claim Due Messages\").item.json.claim_token, p_ok: true }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "3cf72a74-91a0-4f2a-b38d-a3b8cdee3984",
+      "name": "Sticky Note 70c1ffac",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "content": "## Reminders and recalls sender (UNVERIFIED)\nNo AI anywhere in this path. Postgres (pg_cron, hourly) renders fixed bilingual templates into dental_outbound_messages; this workflow only claims due rows with a lease token, sends them, and reports the result. While the clinic is a TEST clinic, rows for numbers not in businesses.settings.outbound_allowlist are parked as held and never handed out. Production note: WhatsApp requires a Meta-approved message template for business-initiated messages outside the 24h window, so the send step must switch to sendTemplate with the body as a template parameter.",
+        "color": 3
+      }
+    }
+  ]
+}

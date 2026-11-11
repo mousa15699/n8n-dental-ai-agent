@@ -1,0 +1,211 @@
+{
+  "name": "dental-chat-web",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "connections": {
+    "Website Chat": {
+      "main": [
+        [
+          {
+            "node": "Normalize Web Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Web Chat": {
+      "main": [
+        [
+          {
+            "node": "Run Dental Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Dental Agent": {
+      "main": [
+        [
+          {
+            "node": "Chat Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "allowedOrigins": "https://your-website.example.com,http://localhost:3000",
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "30ae7c4f-5ba2-4876-8d76-10a29f0465e6",
+      "name": "Website Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n-channel",
+              "name": "channel",
+              "value": "website_chat",
+              "type": "string"
+            },
+            {
+              "id": "n-external",
+              "name": "external_id",
+              "value": "={{ String($json.sessionId || \"\").slice(0, 100) }}",
+              "type": "string"
+            },
+            {
+              "id": "n-text",
+              "name": "text",
+              "value": "={{ String($json.chatInput || \"\").slice(0, 2000) }}",
+              "type": "string"
+            },
+            {
+              "id": "n-lang",
+              "name": "lang",
+              "value": "={{ $json.metadata?.lang === \"ar\" ? \"ar\" : ($json.metadata?.lang === \"en\" ? \"en\" : \"\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c20dde4a-6b90-4c75-9f90-4a89b4ea49ba",
+      "name": "Normalize Web Chat",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REPLACE_WITH_DENTAL_AGENT_CORE_WORKFLOW_ID",
+          "cachedResultName": "dental-agent-core"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $json.channel }}",
+            "external_id": "={{ $json.external_id }}",
+            "text": "={{ $json.text }}",
+            "lang": "={{ $json.lang }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "lang",
+              "displayName": "lang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "08eb581e-fb23-4d27-8b52-1f56f1cc15e9",
+      "name": "Run Dental Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c-output",
+              "name": "output",
+              "value": "={{ $json.output || \"Sorry, I could not answer just now. Please try again, or use the booking page.\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eb09dcc5-6d7e-4613-9e8a-2a233e93de89",
+      "name": "Chat Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Website chat adapter\nThe website widget posts { action, sessionId, chatInput, metadata.lang } here. sessionId is a random UUID kept in the visitor browser: it is the ONLY identity a web visitor has, and it limits the agent to bookings made in this same chat.",
+        "height": 288,
+        "color": 4
+      },
+      "id": "3ffc557e-4f7f-4256-b192-e65231641770",
+      "name": "Sticky Note 4193e335",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        192
+      ]
+    }
+  ]
+}

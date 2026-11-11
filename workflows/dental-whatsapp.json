@@ -1,0 +1,251 @@
+{
+  "name": "dental-whatsapp",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "connections": {
+    "WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Only Text Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only Text Messages": {
+      "main": [
+        [
+          {
+            "node": "Normalize WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Run Dental Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Dental Agent": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "db9a9f50-da09-49b6-8bd6-eef191226b0a",
+      "name": "WhatsApp Message",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.messages?.[0]?.type }}",
+              "rightValue": "text",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "369d6a98-6030-4a30-a227-dd0988a5e4ac",
+      "name": "Only Text Messages",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "w-channel",
+              "name": "channel",
+              "value": "whatsapp",
+              "type": "string"
+            },
+            {
+              "id": "w-external",
+              "name": "external_id",
+              "value": "={{ $json.messages[0].from }}",
+              "type": "string"
+            },
+            {
+              "id": "w-text",
+              "name": "text",
+              "value": "={{ String($json.messages[0].text?.body || \"\").slice(0, 2000) }}",
+              "type": "string"
+            },
+            {
+              "id": "w-lang",
+              "name": "lang",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "w-phone-id",
+              "name": "phone_number_id",
+              "value": "={{ $json.metadata.phone_number_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "67ab0c8c-d2dd-4232-9b55-b109b2e01181",
+      "name": "Normalize WhatsApp",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        480,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REPLACE_WITH_DENTAL_AGENT_CORE_WORKFLOW_ID",
+          "cachedResultName": "dental-agent-core"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $json.channel }}",
+            "external_id": "={{ $json.external_id }}",
+            "text": "={{ $json.text }}",
+            "lang": "={{ $json.lang }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "lang",
+              "displayName": "lang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "a183cdbf-2db4-4738-b795-96353d873fb1",
+      "name": "Run Dental Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $(\"Normalize WhatsApp\").item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $(\"Normalize WhatsApp\").item.json.external_id }}",
+        "textBody": "={{ String($json.output || \"Sorry, something went wrong. Please try again.\").slice(0, 4000) }}",
+        "additionalFields": {}
+      },
+      "id": "552b23b0-5ddd-4075-b3b0-ef82e1e2ffe7",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WhatsApp adapter (UNVERIFIED)\nBuilt but not activated: no WhatsApp Business number or Meta app is connected. external_id is the sender number as verified by Meta, so the agent can manage all of that patient’s bookings. To go live: add both WhatsApp credentials, then activate.",
+        "color": 3
+      },
+      "id": "ada6b11a-8254-47ce-a974-41268287b02e",
+      "name": "Sticky Note e2688e4f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        464
+      ]
+    }
+  ]
+}
